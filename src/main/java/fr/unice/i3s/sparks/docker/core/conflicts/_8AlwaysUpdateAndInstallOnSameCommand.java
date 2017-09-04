@@ -9,11 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 public class _8AlwaysUpdateAndInstallOnSameCommand extends Check<Dockerfile, List<RunIssue1.Issue>>{
-    public static List<RunIssue1.Issue> conflict(Dockerfile dockerfile) {
-        RunIssue1 o = new RunIssue1();
-        List<RunIssue1.Issue> apply = o.apply(dockerfile);
-        return apply;
-    }
 
     @Override
     public Map<Dockerfile, List<RunIssue1.Issue>> apply(List<Dockerfile> dockerfiles) {
@@ -28,4 +23,11 @@ public class _8AlwaysUpdateAndInstallOnSameCommand extends Check<Dockerfile, Lis
 
         return result;
     }
+
+    public static List<RunIssue1.Issue> conflict(Dockerfile dockerfile) {
+        RunIssue1 o = new RunIssue1();
+        List<RunIssue1.Issue> apply = o.apply(dockerfile);
+        return apply;
+    }
+
 }

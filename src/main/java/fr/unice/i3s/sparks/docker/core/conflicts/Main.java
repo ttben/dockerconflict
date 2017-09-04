@@ -31,13 +31,12 @@ public class Main {
     public static final String PATH_TO_DKF = "/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/";
 
     public static List<Dockerfile> main() throws MalFormedImageException, IOException, InterruptedException {
-        return oups();
+        return null;
+        //return oups();
         //new Main().analyseDockerfiles();
     }
 
-    public static void main(String[] args) throws IOException {
-        List<Dockerfile> dockerfiles = loadDockerfiles();
-
+    public static void displayStatsFiles(List<Dockerfile> dockerfiles) {
         int nbF = 0, nbC = 0;
 
         for (Dockerfile dockerfile : dockerfiles) {
@@ -49,8 +48,111 @@ public class Main {
         }
 
         System.out.println(nbF + " " + nbC);
+    }
 
-        oups();
+    public static void main(String[] args) throws IOException {
+        List<Dockerfile> dockerfiles = loadDockerfiles();
+
+
+        displayStatsFiles(dockerfiles);
+
+
+
+        Map<ImageID, Dockerfile> mapSymbolicNameToDockerfiles = SymbolicNameToDockerfileMapper.imageIDDockerfileMap(dockerfiles);
+
+        Map<ImageID, List<Dockerfile>> parentToChildrenMap = new HashMap<>();
+
+        int nbOfParentChildRelationShipEstablished = 0;
+        for (Dockerfile dockerfile : dockerfiles) {
+            List<FROMCommand> listOfFrom = dockerfile.getActionsOfType(FROMCommand.class);
+
+            if (listOfFrom.size() > 0) {
+                FROMCommand fromCommand = listOfFrom.get(0); //  respect docker semantic
+                ImageID parent = fromCommand.getParent();
+
+                //  If a mapping exists for this parent dockerfile
+                if (mapSymbolicNameToDockerfiles.containsKey(parent)) {
+                    nbOfParentChildRelationShipEstablished++;
+
+                    //  Set parent of current dockerfile
+                    Dockerfile parentDockerfile = mapSymbolicNameToDockerfiles.get(parent);
+                    dockerfile.setParent(parentDockerfile);
+                }
+
+                // Save this relation, the other way around
+                List<Dockerfile> children = new ArrayList<>();
+                if (parentToChildrenMap.containsKey(parent)) {
+                    children = parentToChildrenMap.get(parent);
+                }
+                children.add(dockerfile);
+                parentToChildrenMap.put(parent, children);
+            } else {
+                ImageID fakeParent = new ImageID("null");
+                List<Dockerfile> children = new ArrayList<>();
+                if (parentToChildrenMap.containsKey(fakeParent)) {
+                    children = parentToChildrenMap.get(fakeParent);
+                }
+                children.add(dockerfile);
+                parentToChildrenMap.put(fakeParent, children);
+            }
+        }
+
+        System.out.println("Nb. of parent/child relationship established:" + nbOfParentChildRelationShipEstablished);
+
+        Map<ImageID, Integer> nameToNBMap = new HashMap<>();
+        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMap.entrySet()) {
+            nameToNBMap.put(entry.getKey(), entry.getValue().size());
+        }
+        nameToNBMap = sortByValue(nameToNBMap);
+
+
+        for (Map.Entry<ImageID, Integer> entry : nameToNBMap.entrySet()) {
+            //System.out.println(entry.getKey() + "," + entry.getValue());
+        }
+
+        //System.out.println("Handling aliases ...");
+        Map<ImageID, ImageID> mappingAliases = SymbolicNameToDockerfileMapper.aliases(dockerfiles);
+
+        Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap = new HashMap<>();
+        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMap.entrySet()) {
+            ImageID currentImageID = entry.getKey();
+
+            //  Check if an alias is recorded
+            if (mappingAliases.containsKey(currentImageID)) {
+                // Replace the current image id by its alias
+                currentImageID = mappingAliases.get(currentImageID);
+            }
+
+            List<Dockerfile> children = new ArrayList<>();
+            if (parentToChildrenMergedMap.containsKey(currentImageID)) {
+                children = parentToChildrenMergedMap.get(currentImageID);
+            }
+
+            children.addAll(entry.getValue());
+            parentToChildrenMergedMap.put(currentImageID, children);
+        }
+
+        nameToNBMap = new HashMap<>();
+        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMergedMap.entrySet()) {
+            nameToNBMap.put(entry.getKey(), entry.getValue().size());
+        }
+        nameToNBMap = sortByValue(nameToNBMap);
+
+        List<Dockerfile> normalizedDockerfiles = new ArrayList<>();
+        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMergedMap.entrySet()) {
+            List<Dockerfile> value = entry.getValue();
+            for (Dockerfile dockerfile : value) {
+                Dockerfile normalize = NormalizerOperator.normalize(dockerfile);
+                normalizedDockerfiles.add(normalize);
+            }
+        }
+
+        Check<Dockerfile, List<Command>> _2 = new _2RunExecFormWithVariables();
+        Map<Dockerfile, List<Command>> applyOnDkf = _2.apply(dockerfiles);
+        Map<Dockerfile, List<Command>> applyOnDkf2 = _2.apply(dockerfiles);
+        Map<Dockerfile, List<Command>> applyOnNormalisedDkf = _2.apply(normalizedDockerfiles);
+
+
 
         /*
         List<Long> times = new ArrayList<>();
@@ -70,10 +172,65 @@ public class Main {
         */
     }
 
+    private static void merge(Map<ImageID, Integer> parents, List<ImageID> aliases) {
+        List<ImageID> listOfParentsID = new ArrayList<>();
+        listOfParentsID.addAll(parents.keySet());
+
+        ListIterator<ImageID> imageIDListIterator = listOfParentsID.listIterator();
+
+        while (imageIDListIterator.hasNext()) {
+            ImageID imageID = imageIDListIterator.next();
+
+            if (aliases.contains(imageID)) {
+                ImageID newImageID = aliases.get(0); // first alias is the main key
+
+                if (!imageID.equals(newImageID)) {
+
+                    Integer nbOfUsage = parents.get(imageID);
+                    if (parents.containsKey(newImageID)) {
+                        Integer nbToMerge = parents.get(newImageID);
+                        nbOfUsage += nbToMerge;
+                    }
+
+                    parents.remove(imageID);
+                    parents.put(newImageID, nbOfUsage);
+                }
+            }
+        }
+    }
+
+    private static void mergeFromStr(Map<String, Integer> parents, List<String> aliases) {
+        List<String> listOfParentsID = new ArrayList<>();
+        listOfParentsID.addAll(parents.keySet());
+
+        ListIterator<String> imageIDListIterator = listOfParentsID.listIterator();
+
+        while (imageIDListIterator.hasNext()) {
+            String imageID = imageIDListIterator.next();
+
+            if (aliases.contains(imageID)) {
+                String newImageID = aliases.get(0); // first alias is the main key
+
+                if (!imageID.equals(newImageID)) {
+
+                    Integer nbOfUsage = parents.get(imageID);
+                    if (parents.containsKey(newImageID)) {
+                        Integer nbToMerge = parents.get(newImageID);
+                        nbOfUsage += nbToMerge;
+                    }
+
+                    parents.remove(imageID);
+                    parents.put(newImageID, nbOfUsage);
+                }
+            }
+        }
+    }
+
+
     private static List<Dockerfile> createDKF() {
         List<Dockerfile> result = new ArrayList<>();
 
-        for( int i = 0 ; i < DKF ; i++) {
+        for (int i = 0; i < DKF; i++) {
             result.add(new Dockerfile(
                     new RUNCommand(new ShellCommand("apet-get", "updegrade")),
                     new RUNCommand(new ShellCommand("apet-get", "updegrade")),
@@ -136,8 +293,7 @@ public class Main {
     }
 
 
-    private static List<Dockerfile> oups() throws IOException {
-        List<Dockerfile> dockerfiles = loadDockerfiles();
+    private static List<Dockerfile> oups( List<Dockerfile> dockerfiles) throws IOException {
         Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
         dockerfiles = trivialFilter.apply(dockerfiles);
 
@@ -397,7 +553,7 @@ public class Main {
     public static File[] getFiles() {
         FilenameFilter textFilter = (dir, name) -> {
             String lowercaseName = name.toLowerCase();
-            return lowercaseName.endsWith("-dockerfile");
+            return lowercaseName.endsWith("-dockerfile") || lowercaseName.endsWith(".dockerfile");
         };
 
 

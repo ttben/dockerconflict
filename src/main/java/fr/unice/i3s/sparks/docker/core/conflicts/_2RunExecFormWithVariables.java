@@ -82,6 +82,13 @@ public class _2RunExecFormWithVariables extends Check<Dockerfile, List<Command>>
         Map<Dockerfile, List<Command>> result = new HashMap<>();
 
         for (Dockerfile dockerfile : dockerfiles) {
+
+            // TODO delete --
+            if (dockerfile.getSourceFile().equals("/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/_0x726d77_docker-python_blob_a162e14021f55524cad80844f0b43f8f597d78f0_miniconda_Dockerfile-dockerfile")) {
+                dockerfile.getActions();
+            }
+            // TODO --
+
             List<Command> conflict = conflict(dockerfile);
             if (!conflict.isEmpty()) {
                 result.put(dockerfile, conflict);
