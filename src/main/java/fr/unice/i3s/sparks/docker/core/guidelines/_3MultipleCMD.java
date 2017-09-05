@@ -10,8 +10,8 @@ import java.util.Map;
 
 public class _3MultipleCMD extends Check<Dockerfile, Boolean> {
 
-    public static boolean conflict(Dockerfile dockerfile) {
-        return dockerfile.howMuch(CMDCommand.class) > 1;
+    public static int conflict(Dockerfile dockerfile) {
+        return dockerfile.howMuch(CMDCommand.class);
     }
 
 
@@ -19,12 +19,18 @@ public class _3MultipleCMD extends Check<Dockerfile, Boolean> {
     public Map<Dockerfile, Boolean> apply(List<Dockerfile> dockerfiles) {
         Map<Dockerfile, Boolean> result = new HashMap<>();
 
+        int dockerfilesImpacted = 0, nbOfCommandsImpacted = 0;
+
         for (Dockerfile dockerfile : dockerfiles) {
-            Boolean conflict = conflict(dockerfile);
-            if (conflict) {
-                result.put(dockerfile, conflict);
+            int conflict = conflict(dockerfile);
+            if (conflict > 0) {
+                dockerfilesImpacted++;
+                nbOfCommandsImpacted += conflict;
+
+                result.put(dockerfile, true);
             }
         }
+        System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
 
         return result;
     }

@@ -11,6 +11,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class _9PackageInstallationVersionPinning extends Check<Dockerfile, List<Command>> {
+
+    @Override
+    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
+        Map<Dockerfile, List<Command>> result = new HashMap<>();
+        int dockerfilesImpacted = 0, nbOfCommandsImpacted = 0;
+
+        for (Dockerfile dockerfile : dockerfiles) {
+            List<Command> conflict = conflict(dockerfile);
+            if (!conflict.isEmpty()) {
+                dockerfilesImpacted++;
+                nbOfCommandsImpacted += conflict.size();
+
+                result.put(dockerfile, conflict);
+            }
+        }
+
+        System.out.printf("%s,%s,%s\n", getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted);
+        return result;
+    }
+    
     public static List<Command> conflict(Dockerfile dockerfile) {
         ArrayList<RUNCommand> runCommands = dockerfile.getActions()
                 .stream()
@@ -51,20 +71,6 @@ public class _9PackageInstallationVersionPinning extends Check<Dockerfile, List<
                         }
                     }
                 }
-            }
-        }
-
-        return result;
-    }
-
-    @Override
-    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
-        Map<Dockerfile, List<Command>> result = new HashMap<>();
-
-        for (Dockerfile dockerfile : dockerfiles) {
-            List<Command> conflict = conflict(dockerfile);
-            if (!conflict.isEmpty()) {
-                result.put(dockerfile, conflict);
             }
         }
 

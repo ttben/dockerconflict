@@ -18,7 +18,7 @@ public class _3MultipleCMDTest {
         aDockerfile.add(node);
         aDockerfile.add(node1);
 
-        assertTrue(_3MultipleCMD.conflict(aDockerfile));
+        assertTrue(_3MultipleCMD.conflict(aDockerfile) > 0);
     }
 
     @Test
@@ -27,6 +27,6 @@ public class _3MultipleCMDTest {
         CMDCommand node = new CMDCommand(aDockerfile, "node");
         aDockerfile.add(node);
 
-        assertFalse(_3MultipleCMD.conflict(aDockerfile));
+        assertFalse(_3MultipleCMD.conflict(aDockerfile) == 0);
     }
 }

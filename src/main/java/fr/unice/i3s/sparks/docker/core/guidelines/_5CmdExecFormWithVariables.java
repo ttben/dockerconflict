@@ -14,6 +14,26 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class _5CmdExecFormWithVariables extends Check<Dockerfile, List<Command>> {
+    @Override
+    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
+        Map<Dockerfile, List<Command>> result = new HashMap<>();
+
+        int dockerfilesImpacted = 0, nbOfCommandsImpacted = 0;
+
+        for (Dockerfile dockerfile : dockerfiles) {
+            List<Command> conflict = conflict(dockerfile);
+            if (!conflict.isEmpty()) {
+                dockerfilesImpacted++;
+                nbOfCommandsImpacted += conflict.size();
+
+                result.put(dockerfile, conflict);
+            }
+        }
+        System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
+
+        return result;
+    }
+
     public static List<Command> conflict(Dockerfile dockerfile) {
         ArrayList<CMDCommand> runCommands = dockerfile.getActions()
                 .stream()
@@ -55,38 +75,4 @@ public class _5CmdExecFormWithVariables extends Check<Dockerfile, List<Command>>
         return runCommand.getBody().size() > 0 && !runCommand.getBody().get(0).trim().toLowerCase().startsWith("/bin");
     }
 
-    public static void main(String[] args) {
-        Dockerfile dockerfile = new Dockerfile(
-                new FROMCommand(new ImageID("a")),
-                new RUNCommand(new ShellCommand("echo", "$HOME")),
-                new CMDCommand("echo", "$HOME")
-        );
-
-        List<Command> conflict = _5CmdExecFormWithVariables.conflict(dockerfile);
-        System.out.println(conflict);
-
-        dockerfile = new Dockerfile(
-                new FROMCommand(new ImageID("a")),
-                new RUNCommand(new ShellCommand("/bin/sh", "$HOME")),
-                new CMDCommand("/bin/sh", "$HOME")
-        );
-
-        conflict = _5CmdExecFormWithVariables.conflict(dockerfile);
-        System.out.println(conflict);
-    }
-
-
-    @Override
-    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
-        Map<Dockerfile, List<Command>> result = new HashMap<>();
-
-        for (Dockerfile dockerfile : dockerfiles) {
-            List<Command> conflict = conflict(dockerfile);
-            if (!conflict.isEmpty()) {
-                result.put(dockerfile, conflict);
-            }
-        }
-
-        return result;
-    }
 }
