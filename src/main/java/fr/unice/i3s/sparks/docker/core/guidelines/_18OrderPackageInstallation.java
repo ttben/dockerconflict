@@ -1,6 +1,7 @@
 package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
+import fr.unice.i3s.sparks.docker.core.conflicts.Main;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
@@ -83,7 +84,7 @@ public class _18OrderPackageInstallation extends Check<Dockerfile, List<Command>
                 result.put(dockerfile, conflict);
             }
         }
-        System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
+        if (!Main.SILENT) System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
 
         return result;
     }

@@ -2,7 +2,6 @@ package fr.unice.i3s.sparks.docker.core.conflicts;
 
 import fr.uca.i3s.sparks.composition.metamodel.Action;
 import fr.uca.i3s.sparks.composition.metamodel.Check;
-import fr.unice.i3s.sparks.composition.rgeneration.Generator;
 import fr.unice.i3s.sparks.docker.core.conflicts.run.RUNConflict;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptUpdateTag;
@@ -23,11 +22,14 @@ import java.util.stream.Collectors;
 import static java.util.Map.Entry.comparingByValue;
 
 public class Main {
-    public static boolean SILENT = false;
-    public static final String PATH_TO_DKF = "/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/";
+    public static boolean SILENT = true;
+    public static String PATH_TO_DKF = "/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/";
 
     public static void main(String[] args) throws IOException {
-        List<Dockerfile> dockerfiles = loadDockerfiles();
+        if (args.length > 0) {
+            PATH_TO_DKF = args[0];
+        }
+        List<Dockerfile> dockerfiles = loadDockerfiles(PATH_TO_DKF);
 
         displayStatsFiles(dockerfiles);
         Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
@@ -38,7 +40,7 @@ public class Main {
         //executeOnNormalizedDockerfiles(dockerfiles);
     }
 
-    private static List<Dockerfile> entry(List<Dockerfile> dockerfiles) throws IOException {
+    public static List<Dockerfile> entry(List<Dockerfile> dockerfiles) throws IOException {
         executeGuidelines(dockerfiles);
         return dockerfiles;
     }
@@ -124,6 +126,7 @@ public class Main {
 
         Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dockerfiles, Arrays.asList(_2, _3, _5, _6, _7, _8, _9, _12, _13, _14, _15, _16, _17, _18, _19));
 
+
         List<RUNConflict> conflicts = new ArrayList<>();
 
         computeStatistics(dockerfiles);
@@ -164,11 +167,11 @@ public class Main {
         return nb;
     }
 
-    public static List<Dockerfile> loadDockerfiles() {
+    public static List<Dockerfile> loadDockerfiles(String pathToDkf) {
         if (!SILENT) {
             System.out.println("Loading dockerfiles...");
         }
-        File[] files = getFiles();
+        File[] files = getFiles(pathToDkf);
         try {
             return buildDockerfiles(files);
         } catch (IOException e) {
@@ -190,14 +193,14 @@ public class Main {
         return dockerfiles;
     }
 
-    public static File[] getFiles() {
+    public static File[] getFiles(String pathToDkf) {
         FilenameFilter textFilter = (dir, name) -> {
             String lowercaseName = name.toLowerCase();
             return lowercaseName.endsWith("-dockerfile") || lowercaseName.endsWith(".dockerfile");
         };
 
 
-        String folderThatContainsDockerfiles = PATH_TO_DKF;
+        String folderThatContainsDockerfiles = pathToDkf;
         File folder = new File(folderThatContainsDockerfiles);
 
         return folder.listFiles(textFilter);

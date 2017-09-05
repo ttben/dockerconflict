@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static fr.unice.i3s.sparks.docker.core.conflicts.Main.SILENT;
+import static fr.unice.i3s.sparks.docker.core.conflicts.Main.sortByValue;
 
 public class ParentToChildrenDockerfileBuilder {
 
@@ -33,6 +34,7 @@ public class ParentToChildrenDockerfileBuilder {
                     dockerfile.setParent(parentDockerfile);
                 }
 
+
                 // Save this relation, the other way around
                 List<Dockerfile> children = new ArrayList<>();
                 if (parentToChildrenMap.containsKey(parent)) {
@@ -55,6 +57,8 @@ public class ParentToChildrenDockerfileBuilder {
             System.out.println("Nb. of parent/child relationship established:" + nbOfParentChildRelationShipEstablished);
             System.out.println("This represents " + ((nbOfParentChildRelationShipEstablished * 100) / dockerfiles.size()) + "% of the whole dataset.");
         }
+
+
         return parentToChildrenMap;
     }
 }

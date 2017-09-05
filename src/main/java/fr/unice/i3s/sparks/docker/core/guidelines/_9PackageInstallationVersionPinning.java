@@ -1,6 +1,7 @@
 package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
+import fr.unice.i3s.sparks.docker.core.conflicts.Main;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
@@ -27,10 +28,10 @@ public class _9PackageInstallationVersionPinning extends Check<Dockerfile, List<
             }
         }
 
-        System.out.printf("%s,%s,%s\n", getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted);
+        if (!Main.SILENT) System.out.printf("%s,%s,%s\n", getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted);
         return result;
     }
-    
+
     public static List<Command> conflict(Dockerfile dockerfile) {
         ArrayList<RUNCommand> runCommands = dockerfile.getActions()
                 .stream()

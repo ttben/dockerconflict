@@ -1,6 +1,7 @@
 package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
+import fr.unice.i3s.sparks.docker.core.conflicts.Main;
 import fr.unice.i3s.sparks.docker.core.conflicts.RunIssue1;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 
@@ -25,7 +26,7 @@ public class _8AlwaysUpdateAndInstallOnSameCommand extends Check<Dockerfile, Lis
             }
         }
 
-        System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
+        if (!Main.SILENT) System.out.printf("%s,%s,%s\n",getClass().getSimpleName(), nbOfCommandsImpacted, dockerfilesImpacted );
         return result;
     }
 

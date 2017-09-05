@@ -22,6 +22,9 @@ public class SymbolicNameToDockerfileMapper {
                 mapIDToSourceFile.put(new ImageID("ubuntu:trusty-20170728"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("ubuntu:trusty"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("ubuntu:14.04"), dockerfile);
+            } else if (dockerfile.getSourceFile().endsWith("ubuntu-12.04.dockerfile")) {
+                mapIDToSourceFile.put(new ImageID("ubuntu:12.04"), dockerfile);
+                mapIDToSourceFile.put(new ImageID("ubuntu:precise"), dockerfile);
             } else if (dockerfile.getSourceFile().endsWith("debian-jessie.dockerfile")) {
                 mapIDToSourceFile.put(new ImageID("debian:jessie"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("debian:8.9"), dockerfile);
@@ -121,14 +124,14 @@ public class SymbolicNameToDockerfileMapper {
                 mapIDToSourceFile.put(new ImageID("debian:wheezy-20170123"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("debian:7"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("debian:7.11"), dockerfile);
-            } else if (dockerfile.getSourceFile().endsWith("rabbitmq.dockerfile")) {
+            } else if (dockerfile.getSourceFile().endsWith("rabbitmq-latest.dockerfile")) {
                 mapIDToSourceFile.put(new ImageID("rabbitmq"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("rabbitmq:latest"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("rabbitmq:3"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("rabbitmq:3.6"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("rabbitmq:3.6.11"), dockerfile);
             } else if (dockerfile.getSourceFile().endsWith("centos-7.dockerfile")) {
-                mapIDToSourceFile.put(new ImageID("c§§entos:7"), dockerfile);
+                mapIDToSourceFile.put(new ImageID("centos:7"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("centos"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("centos:latest"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("centos:centos7"), dockerfile);
@@ -163,7 +166,7 @@ public class SymbolicNameToDockerfileMapper {
                 mapIDToSourceFile.put(new ImageID("php:5-fpm"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("php:5.6-fpm"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("php:5.6.31-fpm"), dockerfile);
-            } else if (dockerfile.getSourceFile().endsWith("php-7.0-cli.dockerfile")) {
+            } else if (dockerfile.getSourceFile().endsWith("php-7.0.dockerfile")) {
                 mapIDToSourceFile.put(new ImageID("php:7.0-cli"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("php:7.0.22-cli"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("php:7.0.22"), dockerfile);
@@ -178,6 +181,17 @@ public class SymbolicNameToDockerfileMapper {
                 mapIDToSourceFile.put(new ImageID("node:6.11"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("node:6.11.2"), dockerfile);
                 mapIDToSourceFile.put(new ImageID("node:boron"), dockerfile);
+            } else if (dockerfile.getSourceFile().endsWith("alpine-3.3.dockerfile")) {
+                mapIDToSourceFile.put(new ImageID("alpine:3.3"), dockerfile);
+            } else if (dockerfile.getSourceFile().endsWith("alpine-3.5.dockerfile")) {
+                mapIDToSourceFile.put(new ImageID("alpine:3.5"), dockerfile);
+            } else if (dockerfile.getSourceFile().endsWith("node-alpine.dockerfile")) {
+                mapIDToSourceFile.put(new ImageID("node:8-alpine"), dockerfile);
+                mapIDToSourceFile.put(new ImageID("node:8.4-alpine"), dockerfile);
+                mapIDToSourceFile.put(new ImageID("node:8.4.0-alpine"), dockerfile);
+                mapIDToSourceFile.put(new ImageID("node:alpine"), dockerfile);
+            } else if (dockerfile.getSourceFile().endsWith("golang-1.5.dockerfile")) {
+                mapIDToSourceFile.put(new ImageID("golang:1.5"), dockerfile);
             }
 
         }
@@ -198,6 +212,9 @@ public class SymbolicNameToDockerfileMapper {
 
         aliases.put(new ImageID("ubuntu:14.04"), new ImageID("ubuntu:14.04"));
         aliases.put(new ImageID("ubuntu:trusty-20170728"), new ImageID("ubuntu:14.04"));
+
+        aliases.put(new ImageID("ubuntu:12.04"), new ImageID("ubuntu:12.04"));
+        aliases.put(new ImageID("ubuntu:precise"), new ImageID("ubuntu:12.04"));
 
         aliases.put(new ImageID("debian:jessie"), new ImageID("debian:jessie"));
         aliases.put(new ImageID("debian:8.9"), new ImageID("debian:jessie"));
@@ -336,6 +353,16 @@ public class SymbolicNameToDockerfileMapper {
         aliases.put(new ImageID("node:6.11"), new ImageID("node:6"));
         aliases.put(new ImageID("node:6.11.2"), new ImageID("node:6"));
         aliases.put(new ImageID("node:boron"), new ImageID("node:6"));
+
+        aliases.put(new ImageID("alpine:3.3"), new ImageID("alpine:3.3"));
+        aliases.put(new ImageID("alpine:3.5"), new ImageID("alpine:3.5"));
+
+        aliases.put(new ImageID("node:8-alpine"), new ImageID("node:alpine"));
+        aliases.put(new ImageID("node:8.4-alpine"), new ImageID("node:alpine"));
+        aliases.put(new ImageID("node:8.4.0-alpine"), new ImageID("node:alpine"));
+        aliases.put(new ImageID("node:alpine"), new ImageID("node:alpine"));
+
+        aliases.put(new ImageID("golang:1.5"), new ImageID("golang:1.5"));
 
         return aliases;
     }
