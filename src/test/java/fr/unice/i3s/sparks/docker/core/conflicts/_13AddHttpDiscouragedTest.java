@@ -1,5 +1,6 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
+import fr.unice.i3s.sparks.docker.core.guidelines._13AddHttpDiscouraged;
 import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ADDCommand;
@@ -10,7 +11,8 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class _13AddHttpDiscouragedTest {
     @Test

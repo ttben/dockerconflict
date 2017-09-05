@@ -1,9 +1,9 @@
-package fr.unice.i3s.sparks.docker.core.conflicts;
+package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
-import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
-import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ADDCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,22 +11,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class _16WorkdirAbsolutePath extends Check<Dockerfile, List<Command>> {
+public class _13AddHttpDiscouraged extends Check<Dockerfile, List<Command>> {
     public static List<Command> conflict(Dockerfile dockerfile) {
-
-
-        ArrayList<WORKDIRCommand> workdirCommands = dockerfile.getActions()
-                .stream()
-                .filter(c -> c instanceof WORKDIRCommand)
-                .map(WORKDIRCommand.class::cast)
-                .collect(Collectors.toCollection(ArrayList::new));
-
         List<Command> result = new ArrayList<>();
 
-        for (WORKDIRCommand workdirCommand : workdirCommands) {
-            String body = workdirCommand.getBody();
-            if (!body.trim().toLowerCase().startsWith("/")) {
-                result.add(workdirCommand);
+        ArrayList<ADDCommand> addCommands = dockerfile.getActions()
+                .stream()
+                .filter(c -> c instanceof ADDCommand)
+                .map(ADDCommand.class::cast)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        for (ADDCommand addCommand : addCommands) {
+            for (String string : addCommand.getBody()) {
+                if (string.trim().startsWith("http")) {
+                    result.add(addCommand);
+                }
             }
         }
 

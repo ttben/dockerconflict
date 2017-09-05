@@ -1,9 +1,10 @@
-package fr.unice.i3s.sparks.docker.core.conflicts;
+package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
-import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
-import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.RUNCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ShellCommand;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +15,20 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class _2RunExecFormWithVariables extends Check<Dockerfile, List<Command>> {
+    @Override
+    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
+        Map<Dockerfile, List<Command>> result = new HashMap<>();
+
+        for (Dockerfile dockerfile : dockerfiles) {
+            List<Command> conflict = conflict(dockerfile);
+            if (!conflict.isEmpty()) {
+                result.put(dockerfile, conflict);
+            }
+        }
+
+        return result;
+    }
+
     public static List<Command> conflict(Dockerfile dockerfile) {
         ArrayList<RUNCommand> runCommands = dockerfile.getActions()
                 .stream()
@@ -56,45 +71,5 @@ public class _2RunExecFormWithVariables extends Check<Dockerfile, List<Command>>
 
     private static boolean isExecForm(RUNCommand runCommand) {
         return runCommand.getBody().size() > 0 && !runCommand.getBody().get(0).getBody().get(0).trim().toLowerCase().startsWith("/bin");
-    }
-
-    public static void main(String[] args) {
-        Dockerfile dockerfile = new Dockerfile(
-                new FROMCommand(new ImageID("a")),
-                new RUNCommand(new ShellCommand("echo", "$HOME"))
-        );
-
-        List<Command> conflict = _2RunExecFormWithVariables.conflict(dockerfile);
-        System.out.println(conflict);
-
-        dockerfile = new Dockerfile(
-                new FROMCommand(new ImageID("a")),
-                new RUNCommand(new ShellCommand("/bin/sh", "$HOME"))
-        );
-
-        conflict = _2RunExecFormWithVariables.conflict(dockerfile);
-        System.out.println(conflict);
-    }
-
-
-    @Override
-    public Map<Dockerfile, List<Command>> apply(List<Dockerfile> dockerfiles) {
-        Map<Dockerfile, List<Command>> result = new HashMap<>();
-
-        for (Dockerfile dockerfile : dockerfiles) {
-
-            // TODO delete --
-            if (dockerfile.getSourceFile().equals("/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/_0x726d77_docker-python_blob_a162e14021f55524cad80844f0b43f8f597d78f0_miniconda_Dockerfile-dockerfile")) {
-                dockerfile.getActions();
-            }
-            // TODO --
-
-            List<Command> conflict = conflict(dockerfile);
-            if (!conflict.isEmpty()) {
-                result.put(dockerfile, conflict);
-            }
-        }
-
-        return result;
     }
 }

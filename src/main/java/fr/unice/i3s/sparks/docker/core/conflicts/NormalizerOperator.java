@@ -5,7 +5,6 @@ import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.FROMCommand;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 

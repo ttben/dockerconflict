@@ -1,14 +1,12 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
-import fr.unice.i3s.sparks.docker.core.conflicts.cmd.CMDConflict;
+import fr.unice.i3s.sparks.docker.core.guidelines._3MultipleCMD;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.CMDCommand;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class _3MultipleCMDTest {
 

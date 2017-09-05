@@ -4,7 +4,9 @@ package fr.unice.i3s.sparks.docker.core.conflicts;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.*;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Tag;
-import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.RUNCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ShellCommand;
 
 import java.util.ArrayList;
 import java.util.List;

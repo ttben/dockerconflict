@@ -1,5 +1,6 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
+import fr.unice.i3s.sparks.docker.core.guidelines._17CdInRunCommand;
 import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;

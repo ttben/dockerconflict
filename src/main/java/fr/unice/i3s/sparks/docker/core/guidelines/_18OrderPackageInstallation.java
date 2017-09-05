@@ -1,4 +1,4 @@
-package fr.unice.i3s.sparks.docker.core.conflicts;
+package fr.unice.i3s.sparks.docker.core.guidelines;
 
 import fr.uca.i3s.sparks.composition.metamodel.Check;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;

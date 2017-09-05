@@ -6,6 +6,7 @@ import fr.unice.i3s.sparks.composition.rgeneration.Generator;
 import fr.unice.i3s.sparks.docker.core.conflicts.run.RUNConflict;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptUpdateTag;
+import fr.unice.i3s.sparks.docker.core.guidelines.*;
 import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
@@ -37,6 +38,9 @@ public class Main {
     }
 
     public static void displayStatsFiles(List<Dockerfile> dockerfiles) {
+        if (!SILENT) {
+            System.out.println(dockerfiles.size() + " as input.");
+        }
         int nbF = 0, nbC = 0;
 
         for (Dockerfile dockerfile : dockerfiles) {
@@ -47,57 +51,21 @@ public class Main {
             }
         }
 
-        System.out.println(nbF + " " + nbC);
+        if (!SILENT) {
+            System.out.println(nbC + " 'non-parsed' commands, over " + nbF + " dockerfiles.");
+        }
     }
 
     public static void main(String[] args) throws IOException {
         List<Dockerfile> dockerfiles = loadDockerfiles();
-
-
+        displayStatsFiles(dockerfiles);
+        Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
+        dockerfiles = trivialFilter.apply(dockerfiles);
         displayStatsFiles(dockerfiles);
 
 
-
         Map<ImageID, Dockerfile> mapSymbolicNameToDockerfiles = SymbolicNameToDockerfileMapper.imageIDDockerfileMap(dockerfiles);
-
-        Map<ImageID, List<Dockerfile>> parentToChildrenMap = new HashMap<>();
-
-        int nbOfParentChildRelationShipEstablished = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            List<FROMCommand> listOfFrom = dockerfile.getActionsOfType(FROMCommand.class);
-
-            if (listOfFrom.size() > 0) {
-                FROMCommand fromCommand = listOfFrom.get(0); //  respect docker semantic
-                ImageID parent = fromCommand.getParent();
-
-                //  If a mapping exists for this parent dockerfile
-                if (mapSymbolicNameToDockerfiles.containsKey(parent)) {
-                    nbOfParentChildRelationShipEstablished++;
-
-                    //  Set parent of current dockerfile
-                    Dockerfile parentDockerfile = mapSymbolicNameToDockerfiles.get(parent);
-                    dockerfile.setParent(parentDockerfile);
-                }
-
-                // Save this relation, the other way around
-                List<Dockerfile> children = new ArrayList<>();
-                if (parentToChildrenMap.containsKey(parent)) {
-                    children = parentToChildrenMap.get(parent);
-                }
-                children.add(dockerfile);
-                parentToChildrenMap.put(parent, children);
-            } else {
-                ImageID fakeParent = new ImageID("null");
-                List<Dockerfile> children = new ArrayList<>();
-                if (parentToChildrenMap.containsKey(fakeParent)) {
-                    children = parentToChildrenMap.get(fakeParent);
-                }
-                children.add(dockerfile);
-                parentToChildrenMap.put(fakeParent, children);
-            }
-        }
-
-        System.out.println("Nb. of parent/child relationship established:" + nbOfParentChildRelationShipEstablished);
+        Map<ImageID, List<Dockerfile>> parentToChildrenMap = ParentToChildrenDockerfileBuilder.buildHierarchy(dockerfiles, mapSymbolicNameToDockerfiles);
 
         Map<ImageID, Integer> nameToNBMap = new HashMap<>();
         for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMap.entrySet()) {
@@ -110,33 +78,13 @@ public class Main {
             //System.out.println(entry.getKey() + "," + entry.getValue());
         }
 
-        //System.out.println("Handling aliases ...");
+        if (!SILENT) {
+            System.out.println("Handling aliases ...");
+        }
+
         Map<ImageID, ImageID> mappingAliases = SymbolicNameToDockerfileMapper.aliases(dockerfiles);
 
-        Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap = new HashMap<>();
-        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMap.entrySet()) {
-            ImageID currentImageID = entry.getKey();
-
-            //  Check if an alias is recorded
-            if (mappingAliases.containsKey(currentImageID)) {
-                // Replace the current image id by its alias
-                currentImageID = mappingAliases.get(currentImageID);
-            }
-
-            List<Dockerfile> children = new ArrayList<>();
-            if (parentToChildrenMergedMap.containsKey(currentImageID)) {
-                children = parentToChildrenMergedMap.get(currentImageID);
-            }
-
-            children.addAll(entry.getValue());
-            parentToChildrenMergedMap.put(currentImageID, children);
-        }
-
-        nameToNBMap = new HashMap<>();
-        for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMergedMap.entrySet()) {
-            nameToNBMap.put(entry.getKey(), entry.getValue().size());
-        }
-        nameToNBMap = sortByValue(nameToNBMap);
+        Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap =  AliasesMerger.mergeWithAliases(parentToChildrenMap, mappingAliases);
 
         List<Dockerfile> normalizedDockerfiles = new ArrayList<>();
         for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMergedMap.entrySet()) {
@@ -152,25 +100,13 @@ public class Main {
         Map<Dockerfile, List<Command>> applyOnDkf2 = _2.apply(dockerfiles);
         Map<Dockerfile, List<Command>> applyOnNormalisedDkf = _2.apply(normalizedDockerfiles);
 
+        oups(dockerfiles);
+        oups(normalizedDockerfiles);
 
-
-        /*
-        List<Long> times = new ArrayList<>();
-        for (int i = 0; i < ITER; i++) {
-
-            List<Dockerfile> dkf = createDKF();
-            long before = System.currentTimeMillis();
-            Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dkf, Arrays.asList(new _7AptGetUpgrade()));
-
-            long after = System.currentTimeMillis();
-
-            times.add(after - before);
-        }
-
-        OptionalDouble average = times.stream().mapToLong(a -> a).average();
-        System.out.println("\n"+average.getAsDouble());
-        */
     }
+
+
+
 
     private static void merge(Map<ImageID, Integer> parents, List<ImageID> aliases) {
         List<ImageID> listOfParentsID = new ArrayList<>();
@@ -292,12 +228,7 @@ public class Main {
         return apply;
     }
 
-
-    private static List<Dockerfile> oups( List<Dockerfile> dockerfiles) throws IOException {
-        Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
-        dockerfiles = trivialFilter.apply(dockerfiles);
-
-        Check<Dockerfile, Boolean> _1 = new _1FromFirst();
+    private static List<Check> getCheckingRules() {
         Check<Dockerfile, List<Command>> _2 = new _2RunExecFormWithVariables();
         Check<Dockerfile, Boolean> _3 = new _3MultipleCMD();
         Check<Dockerfile, List<Command>> _5 = new _5CmdExecFormWithVariables();
@@ -305,7 +236,31 @@ public class Main {
         Check<Dockerfile, List<Command>> _7 = new _7AptGetUpgrade();
         Check<Dockerfile, List<RunIssue1.Issue>> _8 = new _8AlwaysUpdateAndInstallOnSameCommand();
         Check<Dockerfile, List<Command>> _9 = new _9PackageInstallationVersionPinning();
-        Check<Dockerfile, List<Command>> _10 = new _10FromVersionPinning();
+        Check<Dockerfile, List<Command>> _12 = new _12AddDiscouraged();
+        Check<Dockerfile, List<Command>> _13 = new _13AddHttpDiscouraged();
+        Check<Dockerfile, List<Command>> _14 = new _14UserRoot();
+        Check<Dockerfile, List<Command>> _15 = new _15LessUserCommands();
+        Check<Dockerfile, List<Command>> _16 = new _16WorkdirAbsolutePath();
+        Check<Dockerfile, List<Command>> _17 = new _17CdInRunCommand();
+        Check<Dockerfile, List<Command>> _18 = new _18OrderPackageInstallation();
+        Check<Dockerfile, List<Command>> _19 = new _19SpecifyNoInstallRecommends();
+
+        return Arrays.asList( _2, _3, _5, _6, _7, _8, _9, _12, _13, _14, _15, _16, _17, _18, _19);
+    }
+
+    private static List<Dockerfile> oups( List<Dockerfile> dockerfiles) throws IOException {
+        Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
+        dockerfiles = trivialFilter.apply(dockerfiles);
+
+        //Check<Dockerfile, Boolean> _1 = new _1FromFirst();
+        Check<Dockerfile, List<Command>> _2 = new _2RunExecFormWithVariables();
+        Check<Dockerfile, Boolean> _3 = new _3MultipleCMD();
+        Check<Dockerfile, List<Command>> _5 = new _5CmdExecFormWithVariables();
+        Check<Dockerfile, List<List<Command>>> _6 = new _6MergeableLabel();
+        Check<Dockerfile, List<Command>> _7 = new _7AptGetUpgrade();
+        Check<Dockerfile, List<RunIssue1.Issue>> _8 = new _8AlwaysUpdateAndInstallOnSameCommand();
+        Check<Dockerfile, List<Command>> _9 = new _9PackageInstallationVersionPinning();
+        //Check<Dockerfile, List<Command>> _10 = new _10FromVersionPinning();
         Check<Dockerfile, List<Command>> _12 = new _12AddDiscouraged();
         Check<Dockerfile, List<Command>> _13 = new _13AddHttpDiscouraged();
         Check<Dockerfile, List<Command>> _14 = new _14UserRoot();
@@ -317,10 +272,10 @@ public class Main {
 
         if (!SILENT) System.out.println(dockerfiles.size());
 
-        Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dockerfiles, Arrays.asList(_1, _2, _3, _5, _6, _7, _8, _9, _10, _12, _13, _14, _15, _16, _17, _18, _19));
+        Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dockerfiles, Arrays.asList( _2, _3, _5, _6, _7, _8, _9, _12, _13, _14, _15, _16, _17, _18, _19));
 
 
-        if (!SILENT) System.out.println(getNumberOf(_1, apply));
+       // if (!SILENT) System.out.println(getNumberOf(_1, apply));
         if (!SILENT) System.out.println(getNumberOf(_2, apply));
         if (!SILENT) System.out.println(getDeepNumberOf(_2, apply));
         if (!SILENT) System.out.println(getNumberOf(_3, apply));
@@ -334,8 +289,8 @@ public class Main {
         if (!SILENT) System.out.println(getDeepNumberOf(_8, apply));
         if (!SILENT) System.out.println(getNumberOf(_9, apply));
         if (!SILENT) System.out.println(getDeepNumberOf(_9, apply));
-        if (!SILENT) System.out.println(getNumberOf(_10, apply));
-        if (!SILENT) System.out.println(getDeepNumberOf(_10, apply));
+       // if (!SILENT) System.out.println(getNumberOf(_10, apply));
+       // if (!SILENT) System.out.println(getDeepNumberOf(_10, apply));
         if (!SILENT) System.out.println(getNumberOf(_12, apply));
         if (!SILENT) System.out.println(getDeepNumberOf(_12, apply));
         if (!SILENT) System.out.println(getNumberOf(_13, apply));
@@ -393,141 +348,10 @@ public class Main {
         return nb;
     }
 
-    /*
-    private void analyseDockerfiles() throws IOException {
-
-        List<RUNConflict> conflicts = new ArrayList<>();
-
-        List<Dockerfile> dockerfiles = loadDockerfiles();
-
-        int nbDkF = dockerfiles.size();
-        List<Dockerfile> trivialDockerfiles = filterTrivialDockerfiles(dockerfiles);
-
-        if (!SILENT) {
-            System.out.println(nbDkF + "  files.");
-            percentageOf(trivialDockerfiles.size(), nbDkF, "of files are trivial");
-            if (!SILENT) System.out.println(dockerfiles.size() + " non-trivial files remain.");
-        }
-
-
-        Check<Dockerfile, Boolean> _1 = new _1FromFirst();
-        int nbDkf_1 = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            boolean conflict = _1.apply(dockerfile);
-            if (conflict) {
-                nbDkf_1++;
-            }
-        }
-        if (!SILENT) System.out.printf("!!G_1FromFirst:\n\tDKF:%s\n", nbDkf_1);
-
-        nbDkf_1 = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            boolean conflict = _1FromFirst.conflict(dockerfile);
-            if (conflict) {
-                nbDkf_1++;
-            }
-        }
-
-        if (!SILENT) System.out.printf("G_1FromFirst:\n\tDKF:%s\n", nbDkf_1);
-
-        displayApplicationOnDataSet(_2RunExecFormWithVariables.class, dockerfiles);
-
-        int nbDkf_3 = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            boolean conflict = _3MultipleCMD.conflict(dockerfile);
-            if (conflict) {
-                nbDkf_3++;
-            }
-        }
-
-        if (!SILENT) System.out.printf("G_3MultipleCMD\n\t:DKF:%s\n", nbDkf_3);
-
-
-        displayApplicationOnDataSet(_5CmdExecFormWithVariables.class, dockerfiles);
-
-        int nbDkf_6 = 0;
-        int nbDkC_6 = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            List<List<Command>> conflict = _6MergeableLabel.conflict(dockerfile);
-            if (!conflict.isEmpty()) {
-                nbDkf_6++;
-
-                for (List<Command> cluster : conflict) {
-                    nbDkC_6 += cluster.size() - 1;
-                }
-
-            }
-        }
-
-        if (!SILENT) System.out.printf("G_6MergeableLabel:\n\tDKF:%s, \tDKC:%s\n", nbDkf_6, nbDkC_6);
-
-
-        displayApplicationOnDataSet(_7AptGetUpgrade.class, dockerfiles);
-
-        int nbDkf_8 = 0;
-        int nbDkC_8 = 0;
-        for (Dockerfile dockerfile : dockerfiles) {
-            List<RunIssue1.Issue> conflict = _8AlwaysUpdateAndInstallOnSameCommand.conflict(dockerfile);
-            if (conflict != null && !conflict.isEmpty()) {
-                nbDkf_8++;
-                nbDkC_8 += conflict.size();
-            }
-        }
-
-        if (!SILENT)
-            System.out.printf("G_8AlwaysUpdateAndInstallOnSameCommand:\n\tDKF:%s, \tDKC:%s\n", nbDkf_8, nbDkC_8);
-
-        displayApplicationOnDataSet(_9PackageInstallationVersionPinning.class, dockerfiles);
-        displayApplicationOnDataSet(_10FromVersionPinning.class, dockerfiles);
-        displayApplicationOnDataSet(_12AddDiscouraged.class, dockerfiles);
-        displayApplicationOnDataSet(_13AddHttpDiscouraged.class, dockerfiles);
-        displayApplicationOnDataSet(_14UserRoot.class, dockerfiles);
-        displayApplicationOnDataSet(_15LessUserCommands.class, dockerfiles);
-        displayApplicationOnDataSet(_16WorkdirAbsolutePath.class, dockerfiles);
-        displayApplicationOnDataSet(_17CdInRunCommand.class, dockerfiles);
-        displayApplicationOnDataSet(_18OrderPackageInstallation.class, dockerfiles);
-        displayApplicationOnDataSet(_19SpecifyNoInstallRecommends.class, dockerfiles);
-
-
-        Map<String, List<FROMCommand>> index = new HashMap();
-
-        buildIndex("node", index, dockerfiles);
-        buildIndex("ubuntu", index, dockerfiles);
-        buildIndex("debian", index, dockerfiles);
-        buildIndex("busybox", index, dockerfiles);
-        buildIndex("redis", index, dockerfiles);
-        buildIndex("alpine", index, dockerfiles);
-        buildIndex("mysql", index, dockerfiles);
-        buildIndex("mongo", index, dockerfiles);
-        buildIndex("elasticsarch", index, dockerfiles);
-        buildIndex("logstash", index, dockerfiles);
-        buildIndex("postgres", index, dockerfiles);
-        buildIndex("httpd", index, dockerfiles);
-        buildIndex("wordpress", index, dockerfiles);
-        buildIndex("centos", index, dockerfiles);
-        buildIndex("ruby", index, dockerfiles);
-        buildIndex("memcached", index, dockerfiles);
-        buildIndex("python", index, dockerfiles);
-        buildIndex("php", index, dockerfiles);
-        buildIndex("jenkins", index, dockerfiles);
-        buildIndex("golang", index, dockerfiles);
-        buildIndex("java", index, dockerfiles);
-        buildIndex("rabbitmq", index, dockerfiles);
-        buildIndex("mariadb", index, dockerfiles);
-        buildIndex("kibana", index, dockerfiles);
-
-        for (Map.Entry<String, List<FROMCommand>> stringListEntry : index.entrySet()) {
-            if (!SILENT) System.out.println(stringListEntry.getKey() + " " + stringListEntry.getValue().size());
-        }
-
-        List<RUNConflict> conflicts = new ArrayList<>();
-
-        computeStatistics(dockerfiles);
-        fixAndOptimise(dockerfiles, conflicts);
-        computeStatistics(dockerfiles);
-    }
-    */
     public static List<Dockerfile> loadDockerfiles() {
+        if (!SILENT) {
+            System.out.println("Loading dockerfiles...");
+        }
         File[] files = getFiles();
         try {
             return buildDockerfiles(files);

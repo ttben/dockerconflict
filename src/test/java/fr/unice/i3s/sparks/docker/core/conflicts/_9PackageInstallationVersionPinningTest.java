@@ -1,10 +1,13 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
 import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptInstallTag;
-import fr.unice.i3s.sparks.docker.core.conflicts.tags.AptUpdateTag;
+import fr.unice.i3s.sparks.docker.core.guidelines._9PackageInstallationVersionPinning;
 import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
-import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.FROMCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.RUNCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ShellCommand;
 import org.junit.Test;
 
 import java.util.List;

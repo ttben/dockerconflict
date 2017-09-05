@@ -1,12 +1,13 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
+import fr.unice.i3s.sparks.docker.core.guidelines._2RunExecFormWithVariables;
 import fr.unice.i3s.sparks.docker.core.model.ImageID;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
-import fr.unice.i3s.sparks.docker.core.model.dockerfile.parser.DockerFileParser;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.Command;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.FROMCommand;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.RUNCommand;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.ShellCommand;
+import fr.unice.i3s.sparks.docker.core.model.dockerfile.parser.DockerFileParser;
 import org.junit.Test;
 
 import java.io.File;

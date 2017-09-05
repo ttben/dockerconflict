@@ -1,6 +1,7 @@
 package fr.unice.i3s.sparks.docker.core.conflicts;
 
 import fr.unice.i3s.sparks.docker.core.conflicts.run.MultiLinesRun1Test;
+import fr.unice.i3s.sparks.docker.core.guidelines._8AlwaysUpdateAndInstallOnSameCommand;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.commands.*;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.parser.DockerFileParser;

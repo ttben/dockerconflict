@@ -3,7 +3,6 @@ package fr.unice.i3s.sparks.docker.core.conflicts;
 import fr.uca.i3s.sparks.composition.metamodel.Check;
 import fr.unice.i3s.sparks.docker.core.model.dockerfile.Dockerfile;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
