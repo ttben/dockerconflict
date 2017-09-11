@@ -47,7 +47,7 @@ public class _19SpecifyNoInstallRecommends extends Check<Dockerfile, List<Comman
                     List<String> body = shellCommand.getBody();
 
                     if (!body.contains("--no-install-recommends")) {
-                        result.add(shellCommand);
+                        result.add(runCommand);
                     }
 
                 }

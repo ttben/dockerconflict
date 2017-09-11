@@ -30,18 +30,68 @@ public class Main {
             PATH_TO_DKF = args[0];
         }
         List<Dockerfile> dockerfiles = loadDockerfiles(PATH_TO_DKF);
+        Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
+        dockerfiles = trivialFilter.apply(dockerfiles);
 
+        Map<ImageID, Dockerfile> mapSymbolicNameToDockerfiles = SymbolicNameToDockerfileMapper.imageIDDockerfileMap(dockerfiles);
+        Map<ImageID, List<Dockerfile>> parentToChildrenMap = ParentToChildrenDockerfileBuilder.buildHierarchy(dockerfiles, mapSymbolicNameToDockerfiles);
+        Map<ImageID, ImageID> mappingAliases = SymbolicNameToDockerfileMapper.aliases(dockerfiles);
+        Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap = AliasesMerger.mergeWithAliases(parentToChildrenMap, mappingAliases);
+        List<Dockerfile> normalizedDockerfiles = normalize(parentToChildrenMergedMap);
+
+        List<Integer> nbOfInstructions = new ArrayList<>();
+
+        for (Dockerfile dockerfile : normalizedDockerfiles) {
+            nbOfInstructions.add(dockerfile.getActions().size());
+        }
+
+        IntSummaryStatistics collect = nbOfInstructions.stream().collect(Collectors.summarizingInt(value -> value));
+        System.out.println(collect.toString());
+
+
+        List<Integer> heightOnInheritance = new ArrayList<>();
+
+        for (Dockerfile dockerfile : dockerfiles) {
+            Dockerfile parent = dockerfile;
+            int height = -1;
+            while (parent != null) {
+                height++;
+                parent = parent.getParent();
+            }
+            heightOnInheritance.add(height);
+        }
+
+        IntSummaryStatistics collectInheritance = heightOnInheritance.stream().collect(Collectors.summarizingInt(value -> value));
+        System.out.println(collectInheritance.toString());
+
+        heightOnInheritance = new ArrayList<>();
+
+        for (Dockerfile dockerfile : dockerfiles) {
+            Dockerfile parent = dockerfile;
+            int height =0;
+            while (parent != null) {
+                height += parent.getActions().size();
+                parent = parent.getParent();
+            }
+            heightOnInheritance.add(height);
+        }
+
+        collectInheritance = heightOnInheritance.stream().collect(Collectors.summarizingInt(value -> value));
+        System.out.println(collectInheritance.toString());
+
+        /*
         displayStatsFiles(dockerfiles);
         Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
         dockerfiles = trivialFilter.apply(dockerfiles);
         displayStatsFiles(dockerfiles);
 
-        entry(dockerfiles);
-        //executeOnNormalizedDockerfiles(dockerfiles);
+        //entry(dockerfiles);
+        executeOnNormalizedDockerfiles(dockerfiles);
+        */
     }
 
     public static List<Dockerfile> entry(List<Dockerfile> dockerfiles) throws IOException {
-        executeGuidelines(dockerfiles);
+        dockerfiles = executeGuidelines(dockerfiles);
         return dockerfiles;
     }
 
@@ -68,11 +118,11 @@ public class Main {
 
         Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap = AliasesMerger.mergeWithAliases(parentToChildrenMap, mappingAliases);
         List<Dockerfile> normalizedDockerfiles = normalize(parentToChildrenMergedMap);
-        executeGuidelines(normalizedDockerfiles);
+        normalizedDockerfiles = executeGuidelines(normalizedDockerfiles);
         return normalizedDockerfiles;
     }
 
-    private static List<Dockerfile> normalize(Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap) {
+    public static List<Dockerfile> normalize(Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap) {
         List<Dockerfile> normalizedDockerfiles = new ArrayList<>();
         for (Map.Entry<ImageID, List<Dockerfile>> entry : parentToChildrenMergedMap.entrySet()) {
             List<Dockerfile> value = entry.getValue();
@@ -103,7 +153,7 @@ public class Main {
         }
     }
 
-    private static List<Dockerfile> executeGuidelines(List<Dockerfile> dockerfiles) throws IOException {
+    public static List<Dockerfile> executeGuidelines(List<Dockerfile> dockerfiles) throws IOException {
         //Check<Dockerfile, Boolean> _1 = new _1FromFirst();
         Check<Dockerfile, List<Command>> _2 = new _2RunExecFormWithVariables();
         Check<Dockerfile, Boolean> _3 = new _3MultipleCMD();
@@ -126,14 +176,87 @@ public class Main {
 
         Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dockerfiles, Arrays.asList(_2, _3, _5, _6, _7, _8, _9, _12, _13, _14, _15, _16, _17, _18, _19));
 
+        if (!SILENT) {
+            System.out.println(apply.toString());
+        }
+        // possible interaction: _2, _7, _8, _9, _17, _18, _19
 
+        /*
+                _2  _7  _8  _9  _17  _18  _19
+            _2  X
+            _7      X
+            _8          X
+            _9              X
+            _17                 X
+            _18                       X
+            _19                            X
+         */
+
+        /*
+        Map<Dockerfile, List<Command>> _2conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_2));
+        Map<Dockerfile, List<Command>> _7conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_7));
+        Map<Dockerfile, List<RunIssue1.Issue>> _8conflictsToBeConverted = (Map<Dockerfile, List<RunIssue1.Issue>>) ((Object) apply.get(_8));
+        Map<Dockerfile, List<Command>> _9conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_9));
+        Map<Dockerfile, List<Command>> _17conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_17));
+        Map<Dockerfile, List<Command>> _18conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_18));
+        Map<Dockerfile, List<Command>> _19conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_19));
+
+        Map<Dockerfile, List<Command>> _8conflicts = new HashMap<>();
+        for (Map.Entry<Dockerfile, List<RunIssue1.Issue>> entry : _8conflictsToBeConverted.entrySet()) {
+            List<RunIssue1.Issue> value = entry.getValue();
+            List<Command> commands = new ArrayList<>();
+            for (RunIssue1.Issue issue : value) {
+                commands.add(issue.getRunCommand());
+            }
+            _8conflicts.put(entry.getKey(), commands);
+        }
+
+        cartesianProductOfConflictDetection(Arrays.asList(_2conflicts, _7conflicts, _8conflicts, _9conflicts, _17conflicts, _18conflicts, _19conflicts),
+                Arrays.asList("2", "7", "8", "9", "17", "18", "19"));
+        */
+
+        //  todo draw stacked barplot with: reading and parsing of dockerfiles, normalization, guidelines application
+        //  todo check if no other rules modify the input
+        /*
         List<RUNConflict> conflicts = new ArrayList<>();
 
         computeStatistics(dockerfiles);
         fixAndOptimise(dockerfiles, conflicts);
         computeStatistics(dockerfiles);
+        */
 
         return dockerfiles;
+    }
+
+    private static void cartesianProductOfConflictDetection(List<Map<Dockerfile, List<Command>>> maps, List<String> names) {
+        for (int i = 0; i < maps.size(); i++) {
+            Map<Dockerfile, List<Command>> currentBase = maps.get(i);
+            Set<Dockerfile> currentBaseDockerfile = currentBase.keySet();
+
+            for (int j = i + 1; j < maps.size(); j++) {
+                Map<Dockerfile, List<Command>> otherConflict = maps.get(j);
+                Set<Dockerfile> currentDockerfiles = otherConflict.keySet();
+                Set<Dockerfile> intersection = new HashSet<>(currentBaseDockerfile);
+                intersection.retainAll(currentDockerfiles);
+                //System.out.printf("Dockerfiles,%s,%s,%s\n", names.get(i), names.get(j), intersection.size());
+
+                int nbInstructionWhichIntersect = 0;
+                for (Dockerfile intersected : intersection) {
+                    List<Command> baseCommand = currentBase.get(intersected);
+                    List<Command> currentCommand = otherConflict.get(intersected);
+
+                    for (Command c : baseCommand) {
+                        for (Command c2 : currentCommand) {
+                            if (c == c2) {
+                                nbInstructionWhichIntersect++;
+                            }
+                        }
+                    }
+                }
+                //System.out.printf("Instruction,%s,%s,%s\n", names.get(i), names.get(j), nbInstructionWhichIntersect);
+
+            }
+        }
     }
 
     private static int getNumberOf(Check check, Map<Check, Map<Dockerfile, Object>> apply) {
@@ -200,8 +323,7 @@ public class Main {
         };
 
 
-        String folderThatContainsDockerfiles = pathToDkf;
-        File folder = new File(folderThatContainsDockerfiles);
+        File folder = new File(pathToDkf);
 
         return folder.listFiles(textFilter);
     }
@@ -297,8 +419,8 @@ public class Main {
         }
 
         printRepartition(sortByValue(repartitionsOfCommands));
-       // if (!SILENT) System.out.println(Generator.generatePieChart(repartitionsOfCommands));
-       // if (!SILENT) System.out.println(Generator.generateBarChart(repartitionsOfCommands, "Command type", "Number of commands", "Repartitions of commands type"));
+        // if (!SILENT) System.out.println(Generator.generatePieChart(repartitionsOfCommands));
+        // if (!SILENT) System.out.println(Generator.generateBarChart(repartitionsOfCommands, "Command type", "Number of commands", "Repartitions of commands type"));
 
         int totalNbOfCommands = 0;
         for (Integer i : repartitionsOfCommands.values()) {
