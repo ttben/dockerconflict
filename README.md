@@ -1,34 +1,105 @@
-# Description
 
-This project allows one to fetch dockerfiles from the raw github API and analyse them.
-It is splitted into maven submodules data, core, analyser that match the differents aspects of such requirements.
+# Guidelines
+---
+###### 1. `FROM` command first
+the `FROM` command must be the first to appear in a dockerfile
 
-# Link to dockerfiles of Fig.7
+---
+###### 2. `RUN` Exec form
+`RUN` commands have two syntaxes, one with brackets and one without. Interpretation of arguments differ from the two syntaxes. The one with brackets must be used.
 
-In our paper, we present an real example of a dockerfile hierarchy in Fig.7. We extracted the presented dockerfiles from the following url:
+---
+###### 3. Multiple `CMD`
+`CMD` commands allows one to start a service when booting up a container. Docker allows only **a single service** to be specified, therefore multiple `CMD` are useless since only the last one will be run.
 
-- User's dockerfile: https://github.com/adarshbhat/docker-wr-jenkins/blob/1ad4a923af289963da1676cb9588fbc8442fd2aa/Dockerfile
-- Official jenkin's dockerfile: https://github.com/jenkinsci/docker/blob/5d9a559059b4fb487a8ee6c511f68b43cfe82732/Dockerfile
-- Official openJDK's dockerfile: https://github.com/docker-library/openjdk/blob/e6e9cf8b21516ba764189916d35be57486203c95/8-jdk/Dockerfile
-- Official jessie-scm's dockerfile: https://github.com/docker-library/buildpack-deps/blob/1845b3f918f69b4c97912b0d4d68a5658458e84f/jessie/scm/Dockerfile
-- Official jessie-curl's dockerfile: https://github.com/docker-library/buildpack-deps/blob/a0a59c61102e8b079d568db69368fb89421f75f2/jessie/curl/Dockerfile
-- Official debian's dockerfile: https://github.com/tianon/docker-brew-debian/blob/2c836bc53feb12f70a07dacaa6256d4d66624f38/jessie/Dockerfile
+---
+###### 4. Provides default to `CMD`
+One has to provide default parametervia `CMD` to start a service. If an `EntryPoint` command is specified, `CMD` and `EntryPoint` commands should be specified in `JSON` format.
+
+---
+###### 5. Variables in exec form of `CMD`
+Variables used in `CMD` commands in its exec form are not interpreted.
+`CMD [ "echo", "$HOME" ]` won't output the `$HOME` variable value.
+
+---
+###### 6. Merge `LABEL` commands
+When possible, merge labels commands.
+
+---
+###### 7. Avoid `apt-get upgrade`
+You should avoid `RUN apt-get upgrade` or `dist-upgrade`, as many of the “essential” packages from the base images won’t upgrade inside an unprivileged container
+
+---
+###### 8. Combine `install` with `update`
+
+Always combine `RUN apt-get update` with `apt-get install` in the same `RUN` statement. Ommiting this can lead to unexpected behaviour since `apt-get update` can be not run.
+
+---
+###### 9. Packages, version pinning
+
+Always fully specify the version of the package to install.
+
+---
+###### 10. `FROM`, version pinning
+
+Always fully specify the version of the parent dockerfile to use (**i.e.** __latest__ tag is therefore not permitted).
+
+---
+###### 11. `CMD` exec form
+`CMD` commands have two syntaxes, one with brackets and one without. Interpretation of arguments differ from the two syntaxes. The one with brackets must be used if parameters are specified.
+
+---
+###### 12. Prefer `COPY` 
+Although `ADD` and `COPY` are functionally similar, generally speaking, `COPY` is preferred.
+
+---
+###### 13. `ADD <http>` discouraged
+Because image size matters, using `ADD` to fetch packages from remote `URL`s is strongly discouraged; you should use `curl` or `wget`.
+
+---
+###### 14. User `root` discouraged
+You should avoid installing or using `sudo` since it has unpredictable. `TTY` and signal-forwarding behavior that can cause more problems than it solves. If you absolutely need functionality similar to `sudo` (e.g., initializing the daemon as `root` but running it as non-root), you may be able to use `gosu`.
+
+---
+###### 15. Less `USER` commands as possible
+To reduce layers and complexity, avoid switching `USER` back and forth frequently.
+
+---
+###### 16. `WORKDIR` must have absolute path 
+For clarity and reliability, you should always use absolute paths for your `WORKDIR`.
+
+---
+###### 17. `cd` in `RUN` should be avoided
+Don’t use `cd` in `RUN` commands, use `WORKDIR` instead.
+
+---
+###### 18. Sort installation alphanumerically
+Installation of multiple softwares must be written in alphanumerical order.
+
+---
+###### 19. Add `–no-install-recommend`
+Add `–no-install-recommend` when installing with `apt-get`, this will avoid installation not explicitly specified.
+
+Guidelines can be found [here](https://github.com/ttben/dockerconflict/tree/master/src/main/java/fr/unice/i3s/sparks/docker/core/guidelines). Guidelines `4` and `11` are not implemented since they are too domain-specific.
+
 
 # Collecting of dockerfiles
 
-## DockerHub
+Our main requirement was to  avoid \textbf{downloading} images since **(i)** a docker image can easily weight more than 500MB (the official version 3.5 of python image  weights ~680MB, the official java image weights ~640MB and node ~655MB) the amount of data to store would be too large, and **(ii)** a docker image does not contain all the information originally written by the user.
 
-DockerHub is a repositories of docker images. This was our first target to gather docker images.
-Our main requirement was to  avoid \textbf{downloading} images since a docker image can easily weight more than 500MB (the official version 3.5 of python image  weights ~680MB, the official java image weights ~640MB and node ~655MB) the amount of data to store would be too large. We first targeted the largest collections of docker images we known: the DockerHub. This hub hosts both official images (around 120 images)\footnote{\url{http://www.slideshare.net/Docker/dockercon-16-general-session-day-2-63497745}} and open non-official repositories (around 150 000 repositories\footnote{\url{https://www.ctl.io/developers/blog/post/docker-hub-top-10/}}). This hub is based on a registry that list all available images\footnote{\url{http://54.71.194.30:4014/reference/api/docker-io_api/}} through a \textit{catalogue} endpoint. This specification is currently not implemented by the docker company\footnote{https://github.com/docker/distribution/pull/653} therefore we can not list all available images in the hub. We decided to crawl a subset of names of those images and asks the docker API to get a description of layers and rebuild the dockerfile. To do so, we need a pair $(image name, tag name)$, therefore we need to get all tags of a specific image and retrieve the last one. Finally, we can ask the docker registry to get the description of $(image name, tag name)$ and parse the result. Even doing this leads to \textbf{partial} dockerfiles. Indeed, commands such as $ENV$ do not affect docker's file-system therefore do not create \textit{layers} and therefore are lost when building the image. Moreover, the parent-child relationship still needs to be established since the layer do not store explicitly the parent image ID.
+We first targeted the largest collections of docker files we known: the DockerHub. This hub hosts both official images (around 120 images)\footnote{\url{http://www.slideshare.net/Docker/dockercon-16-general-session-day-2-63497745}} and open non-official repositories (around 150 000 repositories\footnote{\url{https://www.ctl.io/developers/blog/post/docker-hub-top-10/}}). This hub is based on a `registry` that list all available images (and therefore, dockerfile)\footnote{\url{http://54.71.194.30:4014/reference/api/docker-io_api/}} through a \textit{catalogue} endpoint. This specification is currently __not implemented by the docker company__ itself\footnote{https://github.com/docker/distribution/pull/653} therefore we can not list all available images or dockerfiles in the hub. 
 
-![Process to retrieve dockerfiles from DockerHub](DockerImageToDockerFile.png)
-
-
-## GitHub
-
-Because of the problems encountered by generating the dockerfiles, and because this is not at the core of our contribution, we decided to put aside this and crawl \textit{dockerfiles} from GitHub. This communal platform allowed us to perform more or less specific request on the content of the \textit{dockerfiles} and gave us a random sample of it. This has must been done by crawling too.
+The second biggest source of dockerfiles was GitHub. We decided to crawl a set of dockerfiles from GitHub platform. Again, GitHub does not provide an `API endpoint` to list all files by type. We had to `web-crawl` dockerfiles as a physical user would do. Due to GitHub restrictions, one can not look for a specific type of file and have to specify information about the content of the dockerfile.
+This communal platform allowed us to perform more or less specific request on the content of the \textit{dockerfiles} and gave us a random sample of it. This has must been done by crawling too.
 We use a chrome-extension to crawl github content. We perform request on those kind or URLs:
 
-https://github.com/search?p=100&q=language%3ADockerfile+FROM&ref=searchresults&type=Code&utf8=%E2%9C%93
+`https://github.com/search?p=100&q=language%3ADockerfile+FROM&ref=searchresults&type=Code&utf8=%E2%9C%93`
 
 to be able to find Dockerfile that, at least, contains a FROM code inside.
+
+We then filter the result to delete duplicates since the `API` returned a `random` sample.
+
+In order to have a fair set of files, we iteratively looked for docker commands from the docker DSL. This way, we had an homogenous amount of each docker commands and let statistics do the remaining work.
+
+
+Moreover, the parent-child relationship still needs to be established since the layer do not store explicitly the parent image ID.
