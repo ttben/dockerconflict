@@ -78,6 +78,7 @@ public class Main {
 
         collectInheritance = heightOnInheritance.stream().collect(Collectors.summarizingInt(value -> value));
         System.out.println(collectInheritance.toString());
+        heightOnInheritance.stream().filter(integer -> integer > 100).forEach(System.out::println);
 
         /*
         displayStatsFiles(dockerfiles);
