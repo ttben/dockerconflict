@@ -69,6 +69,7 @@ public class _9PackageInstallationVersionPinning extends Check<Dockerfile, List<
 
                         if (current.split(":").length == 1) {
                             result.add(runCommand);
+                            break;  // FIXME THIS MAKES ME LOST TWO F********** HOURS
                         }
                     }
                 }
