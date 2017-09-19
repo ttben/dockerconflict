@@ -37,7 +37,7 @@ public class _8AlwaysUpdateAndInstallOnSameCommandTest {
         assertEquals(15, result.howMuch(ShellCommand.class));
 
         _8AlwaysUpdateAndInstallOnSameCommand a = new _8AlwaysUpdateAndInstallOnSameCommand();
-        Map<Dockerfile, List<RunIssue1.Issue>> apply = a.apply(Arrays.asList(result));
+        Map<Dockerfile, List<Command>> apply = a.apply(Arrays.asList(result));
 
         assertEquals(15, result.getActions().size());
         assertEquals(1, result.howMuch(FROMCommand.class));

@@ -46,7 +46,7 @@ public class Main {
         }
 
         IntSummaryStatistics collect = nbOfInstructions.stream().collect(Collectors.summarizingInt(value -> value));
-        System.out.println(collect.toString());
+        //System.out.println(collect.toString());
 
 
         List<Integer> heightOnInheritance = new ArrayList<>();
@@ -62,7 +62,7 @@ public class Main {
         }
 
         IntSummaryStatistics collectInheritance = heightOnInheritance.stream().collect(Collectors.summarizingInt(value -> value));
-        System.out.println(collectInheritance.toString());
+        //System.out.println(collectInheritance.toString());
 
         heightOnInheritance = new ArrayList<>();
 
@@ -77,18 +77,36 @@ public class Main {
         }
 
         collectInheritance = heightOnInheritance.stream().collect(Collectors.summarizingInt(value -> value));
-        System.out.println(collectInheritance.toString());
-        heightOnInheritance.stream().filter(integer -> integer > 100).forEach(System.out::println);
+       //System.out.println(collectInheritance.toString());
+        //heightOnInheritance.stream().filter(integer -> integer > 100).forEach(System.out::println);
 
-        /*
-        displayStatsFiles(dockerfiles);
-        Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
-        dockerfiles = trivialFilter.apply(dockerfiles);
-        displayStatsFiles(dockerfiles);
+        int nbOfDockerfileThatInstalls = 0 ,nbOfRUNThatInstalls = 0 ,nbOfRUN = 0 ;
+        for (Dockerfile dockerfile : dockerfiles) {
+            int currentNbOfRUNThatInstalls = 0;
+            for (Command command : dockerfile.getActions()) {
+                if (command.containsTag(AptInstallTag.class)) {
+                    currentNbOfRUNThatInstalls++;
+                }
+
+                if (command instanceof RUNCommand) {
+                    nbOfRUN++;
+                }
+            }
+
+            if (currentNbOfRUNThatInstalls > 0) {
+                nbOfDockerfileThatInstalls++;
+            }
+            nbOfRUNThatInstalls += currentNbOfRUNThatInstalls;
+        }
+
+        System.out.println("nbOfDockerfileThatInstalls:"+nbOfDockerfileThatInstalls);
+        System.out.println("nbOfRUNThatInstalls:"+nbOfRUNThatInstalls);
+        System.out.println("nbOfRUN:"+nbOfRUN);
+
 
         //entry(dockerfiles);
         executeOnNormalizedDockerfiles(dockerfiles);
-        */
+
     }
 
     public static List<Dockerfile> entry(List<Dockerfile> dockerfiles) throws IOException {
@@ -119,8 +137,22 @@ public class Main {
 
         Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap = AliasesMerger.mergeWithAliases(parentToChildrenMap, mappingAliases);
         List<Dockerfile> normalizedDockerfiles = normalize(parentToChildrenMergedMap);
+        System.out.println(normalizedDockerfiles.size() + " dockerfiles");
+
+        int instructions = 0;
+        for (Dockerfile dockerfile : normalizedDockerfiles) {
+            instructions += dockerfile.getActions().size();
+
+        }
+
+        System.out.println(instructions + " nb instructions");
+
+
         normalizedDockerfiles = executeGuidelines(normalizedDockerfiles);
+
+
         return normalizedDockerfiles;
+
     }
 
     public static List<Dockerfile> normalize(Map<ImageID, List<Dockerfile>> parentToChildrenMergedMap) {
@@ -161,7 +193,7 @@ public class Main {
         Check<Dockerfile, List<Command>> _5 = new _5CmdExecFormWithVariables();
         Check<Dockerfile, List<List<Command>>> _6 = new _6MergeableLabel();
         Check<Dockerfile, List<Command>> _7 = new _7AptGetUpgrade();
-        Check<Dockerfile, List<RunIssue1.Issue>> _8 = new _8AlwaysUpdateAndInstallOnSameCommand();
+        Check<Dockerfile, List<Command>> _8 = new _8AlwaysUpdateAndInstallOnSameCommand();
         Check<Dockerfile, List<Command>> _9 = new _9PackageInstallationVersionPinning();
         //Check<Dockerfile, List<Command>> _10 = new _10FromVersionPinning();
         Check<Dockerfile, List<Command>> _12 = new _12AddDiscouraged();
@@ -173,13 +205,13 @@ public class Main {
         Check<Dockerfile, List<Command>> _18 = new _18OrderPackageInstallation();
         Check<Dockerfile, List<Command>> _19 = new _19SpecifyNoInstallRecommends();
 
-        if (!SILENT) System.out.println(dockerfiles.size());
 
         Map<Check, Map<Dockerfile, Object>> apply = new Executor().apply(dockerfiles, Arrays.asList(_2, _3, _5, _6, _7, _8, _9, _12, _13, _14, _15, _16, _17, _18, _19));
 
-        if (!SILENT) {
-            System.out.println(apply.toString());
-        }
+
+        //List<RUNConflict> conflicts = new ArrayList<>();
+        //fixAndOptimise(dockerfiles, conflicts);
+
         // possible interaction: _2, _7, _8, _9, _17, _18, _19
 
         /*
@@ -193,28 +225,29 @@ public class Main {
             _19                            X
          */
 
-        /*
+
         Map<Dockerfile, List<Command>> _2conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_2));
         Map<Dockerfile, List<Command>> _7conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_7));
-        Map<Dockerfile, List<RunIssue1.Issue>> _8conflictsToBeConverted = (Map<Dockerfile, List<RunIssue1.Issue>>) ((Object) apply.get(_8));
+        Map<Dockerfile, List<Command>> _8conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_8));
         Map<Dockerfile, List<Command>> _9conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_9));
         Map<Dockerfile, List<Command>> _17conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_17));
         Map<Dockerfile, List<Command>> _18conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_18));
         Map<Dockerfile, List<Command>> _19conflicts = (Map<Dockerfile, List<Command>>) ((Object) apply.get(_19));
 
-        Map<Dockerfile, List<Command>> _8conflicts = new HashMap<>();
-        for (Map.Entry<Dockerfile, List<RunIssue1.Issue>> entry : _8conflictsToBeConverted.entrySet()) {
-            List<RunIssue1.Issue> value = entry.getValue();
-            List<Command> commands = new ArrayList<>();
-            for (RunIssue1.Issue issue : value) {
-                commands.add(issue.getRunCommand());
-            }
-            _8conflicts.put(entry.getKey(), commands);
+
+        int l = 0;
+        for (Map.Entry<Dockerfile, List<Command>> entry : _8conflicts.entrySet()) {
+            l += entry.getValue().size();
         }
 
+        System.out.println("NBOfRUNCommand that violates:"+ l);
+        System.out.println("NBOf dockerfile that violates:"+_8conflicts.keySet().size());
+
         cartesianProductOfConflictDetection(Arrays.asList(_2conflicts, _7conflicts, _8conflicts, _9conflicts, _17conflicts, _18conflicts, _19conflicts),
-                Arrays.asList("2", "7", "8", "9", "17", "18", "19"));
-        */
+                Arrays.asList("1", "5", "6", "7", "13", "14", "15"));
+        List<RUNConflict> conflicts = new ArrayList<>();
+        fixAndOptimise(dockerfiles, conflicts);
+
 
         //  todo draw stacked barplot with: reading and parsing of dockerfiles, normalization, guidelines application
         //  todo check if no other rules modify the input
@@ -235,6 +268,7 @@ public class Main {
             Set<Dockerfile> currentBaseDockerfile = currentBase.keySet();
 
             for (int j = i + 1; j < maps.size(); j++) {
+                //System.out.println(i + "--" + j);
                 Map<Dockerfile, List<Command>> otherConflict = maps.get(j);
                 Set<Dockerfile> currentDockerfiles = otherConflict.keySet();
                 Set<Dockerfile> intersection = new HashSet<>(currentBaseDockerfile);
@@ -254,7 +288,7 @@ public class Main {
                         }
                     }
                 }
-                //System.out.printf("Instruction,%s,%s,%s\n", names.get(i), names.get(j), nbInstructionWhichIntersect);
+                System.out.printf("Instruction,%s,%s,%s\n", names.get(i), names.get(j), nbInstructionWhichIntersect);
 
             }
         }
@@ -353,7 +387,7 @@ public class Main {
             }
         }
 
-        if (!SILENT)
+        if (!SILENT){}
             System.out.println("Rule: merge contiguous run.\n\t-> Number of run commands that can be deleted (by merge operation): " + gain + " commands.");
     }
 

@@ -12,13 +12,6 @@ public class NormalizerOperator {
     public static Dockerfile normalize(Dockerfile dockerfile) {
         Dockerfile result = new Dockerfile(dockerfile.getSourceFile());
 
-        List<FROMCommand> actionsOfType = dockerfile.getActionsOfType(FROMCommand.class);
-        if (actionsOfType.size() > 0) {
-            if (actionsOfType.get(0).getParent().equals(new ImageID("ubuntu:16.04"))) {
-                dockerfile.getActions();
-            }
-        }
-
         LinkedList<Dockerfile> hierarchy = new LinkedList<>();
 
         Dockerfile parent = dockerfile;
@@ -34,7 +27,7 @@ public class NormalizerOperator {
                 List<Command> actions = dockerfile1.getActions();
                 for (int j = 0 ; j < actions.size() ; j++) {
                     if (j == 0 && actions.get(j) instanceof FROMCommand) {
-                        // do nothing
+                        // do nothing, ie skip FROM
                     } else {
                         result.add(actions.get(j));
                     }
