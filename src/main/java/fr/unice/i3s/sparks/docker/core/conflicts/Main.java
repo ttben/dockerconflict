@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,12 +24,19 @@ import static java.util.Map.Entry.comparingByValue;
 
 public class Main {
     public static boolean SILENT = true;
-    public static String PATH_TO_DKF = "/Users/benjaminbenni/Work/PhD/src/main/resources/dockerfiles/";
+    // FIXME PLEASE UNZIP THE dataset-dockerfile.zip FILE CONTAINED IN RESOURCE FOLDER
+    // AND PUT THE RESULTING dockerfiles FOLDER UNDER src/main/resources/
+    public static String PATH_TO_DKF = "";
 
     public static void main(String[] args) throws IOException {
         if (args.length > 0) {
             PATH_TO_DKF = args[0];
+        } else {
+            URL resource = Main.class.getClassLoader().getResource("dockerfiles");
+            PATH_TO_DKF = resource.getPath();
         }
+
+
         List<Dockerfile> dockerfiles = loadDockerfiles(PATH_TO_DKF);
         Preprocessor<Dockerfile> trivialFilter = new TrivialDkfPreprocessor();
         dockerfiles = trivialFilter.apply(dockerfiles);
